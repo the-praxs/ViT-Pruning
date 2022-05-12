@@ -22,8 +22,7 @@ class channel_selection(nn.Module):
         ---------
         input_tensor: (B, num_patches + 1, dim). 
         """
-        output = input_tensor.mul(self.indexes)
-        return output
+        return input_tensor.mul(self.indexes)
 
 class Residual(nn.Module):
     def __init__(self, fn):

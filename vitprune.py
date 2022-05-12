@@ -30,17 +30,18 @@ model = ViT(
 model = model.to(device)
 
 model_path = "checkpoint/pruning-adamw-vit-4-79.84.t7"
-print("=> loading checkpoint '{}'".format(model_path))
+print(f"=> loading checkpoint '{model_path}'")
 checkpoint = torch.load(model_path)
 start_epoch = checkpoint['epoch']
 best_prec1 = checkpoint['acc']
 model.load_state_dict(checkpoint['net'])
 print("=> loaded checkpoint '{}' (epoch {}) Prec1: {:f}".format(model_path, checkpoint['epoch'], best_prec1))
 
-total = 0
-for m in model.modules():
-    if isinstance(m, channel_selection):
-        total += m.indexes.data.shape[0]
+total = sum(
+    m.indexes.data.shape[0]
+    for m in model.modules()
+    if isinstance(m, channel_selection)
+)
 
 bn = torch.zeros(total)
 index = 0
@@ -62,18 +63,15 @@ cfg = []
 cfg_mask = []
 for k, m in enumerate(model.modules()):
     if isinstance(m, channel_selection):
+        weight_copy = m.indexes.data.abs().clone()
+        mask = weight_copy.gt(thre).float().cuda()
         # print(k)
         # print(m)
         if k in [16,40,64,88,112,136]:
-            weight_copy = m.indexes.data.abs().clone()
-            mask = weight_copy.gt(thre).float().cuda()
             thre_ = thre.clone()
             while (torch.sum(mask)%8 !=0):                       # heads
                 thre_ = thre_ - 0.0001
                 mask = weight_copy.gt(thre_).float().cuda()
-        else:
-            weight_copy = m.indexes.data.abs().clone()
-            mask = weight_copy.gt(thre).float().cuda()
         pruned = pruned + mask.shape[0] - torch.sum(mask)
         m.indexes.data.mul_(mask)
         cfg.append(int(torch.sum(mask)))
@@ -98,7 +96,7 @@ def test(model):
     correct = 0
     total = 0
     with torch.no_grad():
-        for batch_idx, (inputs, targets) in enumerate(testloader):
+        for inputs, targets in testloader:
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs)
             _, predicted = outputs.max(1)

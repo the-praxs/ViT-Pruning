@@ -6,6 +6,7 @@ written by @kentaroy47, @arutema47
 
 '''
 
+
 from __future__ import print_function
 
 import torch
@@ -112,7 +113,7 @@ if args.resume:
     # Load checkpoint.
     print('==> Resuming from checkpoint..')
     assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/{}-ckpt.t7'.format(args.net))
+    checkpoint = torch.load(f'./checkpoint/{args.net}-ckpt.t7')
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']
@@ -186,11 +187,11 @@ def test(epoch):
 
             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
-    
+
     # Update scheduler
     if not args.cos:
         scheduler.step(test_loss)
-    
+
     # Save checkpoint.
     acc = 100.*correct/total
     if acc > best_acc:
@@ -202,9 +203,9 @@ def test(epoch):
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/'+args.net+'-{}-ckpt.t7'.format(args.patch))
+        torch.save(state, './checkpoint/'+args.net + f'-{args.patch}-ckpt.t7')
         best_acc = acc
-    
+
     os.makedirs("log", exist_ok=True)
     content = time.ctime() + ' ' + f'Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, val loss: {test_loss:.5f}, acc: {(acc):.5f}'
     print(content)
